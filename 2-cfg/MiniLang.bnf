@@ -1,0 +1,24 @@
+<program> ::= <statement> | <statement> <program>
+<statement> ::= <assignment> | <if_statement> | <while_statement>
+
+<assignment> ::= <identifier> '=' <expression> ';'
+<if_statement> ::= 'if' '(' <expression> ')' '{' <program> '}' 
+                | 'if' '(' <expression> ')' '{' <program> '}' 'else' '{' <program> '}' 
+<while_statement> ::= 'while' '(' <expression> ')' '{' <program> '}'
+
+# <expression> 是一个带值的语句
+# <expression> 可以是 10，也可以是 x + 5，甚至是 x + 5 * 2。这里面涉及到了一个核心问题：运算符优先级。我们都知道，5 * 2 要先算。BNF如何体现这一点呢？
+
+# 答案是：通过分层来强制规定运算顺序。
+
+# 最高优先级：原子单位 (Factor)
+# 我们先定义表达式中最基本的、不可再分的东西，称之为 <factor> (因子)。一个因子可以是什么？
+#     一个纯数字，我们叫它 <number>。
+#     一个变量名，也就是 <identifier>。
+#     或者，用括号括起来的另一个完整的表达式 (<expression>)。括号就是用来提升优先级的
+
+<factor> ::= <number> | <identifier> | '(' <expression> ')'
+
+# 次高优先级：乘除法 (Term)
+# 接下来，我们定义一个由“因子”通过乘除法组成的结构，称之为 <term> (项)。
+<term> ::= <factor> | <term> '*' <factor> | <term> '/' <factor>
