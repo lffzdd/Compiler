@@ -8,6 +8,14 @@ typedef enum {
   TOKEN_OPERATOR,
   TOKEN_IDENTIFIER,
   TOKEN_INTEGER,
+
+  TOKEN_LEFT_PAREN,
+  TOKEN_RIGHT_PAREN,
+  TOKEN_LEFT_BRACE,
+  TOKEN_RIGHT_BRACE,
+  TOKEN_LEFT_BRACKET,
+  TOKEN_RIGHT_BRACKET,
+
   TOKEN_SEMICOLON,
   TOKEN_EOF,
   TOKEN_UNKNOWN
@@ -74,7 +82,11 @@ Token getNextToken(const char *src, int *pos) {
     return token;
   }
 
-  // 7.识别未知字符
+  // 7.识别括号
+  if (src[*pos] == '(') {
+  
+  }
+  // 8.识别未知字符
   token.type = TOKEN_UNKNOWN;
   token.value[0] = src[*pos];
   (*pos)++;
@@ -108,8 +120,8 @@ int lexer(const char *src) {
 
   // 打印Token类型和值
   while (token.type != TOKEN_EOF) {
-    printf("Token Type: %s,\tValue: %s\n", tokenTypeToString(token.type),
-           token.value);
+    printf("Token Type: %s,\tValue: %s\n", tokenTypeToString(token.type), token.value);
+
     token = getNextToken(src, &pos);
   }
   return 0;

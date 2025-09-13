@@ -1,0 +1,5 @@
+# Simple clang-format configuration focused on line length
+BasedOnStyle: LLVM
+
+# Main setting: Maximum line length
+ColumnLimit: 120

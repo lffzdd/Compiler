@@ -1,0 +1,55 @@
+# 1. 起始规则 (Program Structure)
+<program> ::= {<function_declaration>}
+
+<function_declaration> ::= <type> <identifier> '(' [ <parameter_list> ] ')' <compound_statement>
+<parameter_list> ::= <variable_declaration> {',' <variable_declaration>}
+
+# 2. 语句 (Statements)
+<statement> ::= <variable_declaration>
+              | <expression_statement>
+              | <if_statement>
+              | <while_statement>
+              | <compound_statement>
+              | <return_statement>
+
+# 语句块
+<compound_statement> ::= '{' {<statement>} '}'
+
+# 简单语句
+<variable_declaration> ::= <type> <identifier> ['=' <expression>] ';'
+<expression_statement> ::= <expression> ';'
+<return_statement> ::= 'return' <expression> ';'
+
+# 控制流语句
+<if_statement> ::= 'if' '(' <expression> ')' <statement> ['else' <statement>]
+<while_statement> ::= 'while' '(' <expression> ')' <statement>
+
+# 3. 表达式 (Expressions) - 按优先级分层
+#    (从低到高: assignment -> logical -> equality -> comparison -> additive -> multiplicative -> primary)
+
+<expression> ::= <assignment>
+
+<assignment> ::= <logical_or_expression> | <identifier> '=' <assignment>
+
+<logical_or_expression> ::= <logical_and_expression> {'||' <logical_and_expression>}
+<logical_and_expression> ::= <equality_expression> {'&&' <equality_expression>}
+
+<equality_expression> ::= <relational_expression> {('==' | '!=') <relational_expression>}
+<relational_expression> ::= <additive_expression> {('<' | '>' | '<=' | '>=') <additive_expression>}
+
+<additive_expression> ::= <multiplicative_expression> {('+' | '-') <multiplicative_expression>}
+<multiplicative_expression> ::= <primary_expression> {('*' | '/') <primary_expression>}
+
+<primary_expression> ::= <identifier>
+                       | <number>
+                       | '(' <expression> ')'
+                       | <identifier> '(' [ <argument_list> ] ')' # 函数调用
+
+<argument_list> ::= <expression> {',' <expression>}
+
+# 4. 终结符 (Terminals) - 通常由词法分析器处理
+<type> ::= 'int' | 'float' | 'bool' | 'char' | 'void'
+# <identifier> ::= /* 由词法分析器定义: e.g., [a-zA-Z_][a-zA-Z0-9_]* */
+<identifier> ::= <letter> { <letter> | <digit> | '_' }
+
+<number> ::= /* 由词法分析器定义: e.g., [0-9]+ or handling floats */```
