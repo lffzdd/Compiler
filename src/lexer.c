@@ -13,13 +13,23 @@ Token getNextToken(const char* src, int* pos) {
         (*pos)++;
     }
 
-    // 2.检查是否结束
+    // 2.跳过注释
+    if (src[*pos] == '/' && src[*pos + 1] == '/') {
+        // 单行注释，跳过到行尾
+        while (src[*pos] != '\0' && src[*pos] != '\n') {
+            (*pos)++;
+        }
+        // 递归调用处理下一个token
+        return getNextToken(src, pos);
+    }
+
+    // 3.检查是否结束
     if (src[*pos] == '\0') {
         token.type = TOKEN_EOF;
         return token;
     }
 
-    // 3.识别标识符、关键字和布尔值
+    // 4.识别标识符、关键字和布尔值
     if (isalpha(src[*pos]) || src[*pos] == '_') {
         int i = 0;
         while (isalnum(src[*pos]) || src[*pos] == '_') {
@@ -40,7 +50,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 4.识别操作符,先检查多字符，再检查单字符
+    // 5.识别操作符,先检查多字符，再检查单字符
     if (strncmp(&src[*pos], "==", 2) == 0 || strncmp(&src[*pos], "!=", 2) == 0 ||
         strncmp(&src[*pos], "<=", 2) == 0 || strncmp(&src[*pos], ">=", 2) == 0) {
         token.type = TOKEN_OPERATOR;
@@ -56,7 +66,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 5.识别数字(整数和浮点数)
+    // 6.识别数字(整数和浮点数)
     if (isdigit(src[*pos])) {
         int i = 0;
         token.type = TOKEN_INTEGER; // 默认为整数
@@ -80,7 +90,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 6.识别字符字面量 'a'
+    // 7.识别字符字面量 'a'
     if (src[*pos] == '\'') {
         token.type = TOKEN_CHAR;
         int i = 0;
@@ -103,7 +113,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 7.识别字符串字面量 "hello"
+    // 8.识别字符串字面量 "hello"
     if (src[*pos] == '"') {
         token.type = TOKEN_STRING;
         int i = 0;
@@ -128,7 +138,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 8.识别括号
+    // 9.识别括号
     if (strchr("(){}[]", src[*pos])) {
         char c = src[*pos];
         token.value[0] = c;
@@ -145,7 +155,7 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 9.识别分号
+    // 10.识别分号
     if (src[*pos] == ';') {
         token.type = TOKEN_SEMICOLON;
         token.value[0] = ';';
@@ -153,7 +163,15 @@ Token getNextToken(const char* src, int* pos) {
         return token;
     }
 
-    // 10.识别未知字符
+    // 11.识别逗号
+    if (src[*pos] == ',') {
+        token.type = TOKEN_COMMA;
+        token.value[0] = ',';
+        (*pos)++;
+        return token;
+    }
+
+    // 12.识别未知字符
     token.type = TOKEN_UNKNOWN;
     token.value[0] = src[*pos];
     (*pos)++;

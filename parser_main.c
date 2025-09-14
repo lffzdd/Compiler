@@ -3,14 +3,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-extern Token currentToken;
-extern int pos;
-extern const char* src;
-
 int main(int argc, char* argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <source_file>\n", argv[0]);
+    if (argc < 2 || argc > 3) {
+        fprintf(stderr, "Usage: %s <source_file> [--debug]\n", argv[0]);
+        fprintf(stderr, "  --debug: Enable debug mode to show parsing process\n");
         return 1;
+    }
+
+    // 检查是否启用调试模式
+    int debug = 0;
+    if (argc == 3 && strcmp(argv[2], "--debug") == 0) {
+        debug = 1;
     }
 
     // 接收命令行参数文件路径
@@ -25,25 +28,19 @@ int main(int argc, char* argv[]) {
     }
 
     // 读取文件内容
-    static char source[8192];
-    memset(source, 0, sizeof(source));
+    char src[8192];
+    memset(src, 0, sizeof(src));
 
-    size_t bytes_read = fread(source, sizeof(char), sizeof(source), file);
-    source[bytes_read] = '\0';
+    size_t bytes_read = fread(src, sizeof(char), sizeof(src), file);
+    src[bytes_read] = '\0';
 
-    // 设置全局源码指针
-    src = source;
-    pos = 0;
-
-    printf("=== Parsing ===\n");
-
-    // 获取第一个token
-    nextToken();
-
-    // 开始解析
-    parseProgram();
-
-    printf("Parse completed successfully!\n");
+    // 根据参数选择调用parse还是parse_debug
+    if (debug) {
+        parse_debug(src);
+    }
+    else {
+        parse(src);
+    }
 
     fclose(file);
     return 0;

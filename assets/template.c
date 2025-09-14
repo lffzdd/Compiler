@@ -3,7 +3,7 @@ int b = 1;
 float c=3.1;
 char d = 'a';
 
-// {
-// a >= a + b;
-// a = (a + b);
-// }
+if(a == 0){
+a >= a + b;
+a = (a + b);
+}

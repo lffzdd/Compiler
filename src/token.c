@@ -32,6 +32,8 @@ const char* tokenTypeToString(TokenType type) {
         return "RIGHT_BRACKET";
     case TOKEN_SEMICOLON:
         return "SEMICOLON";
+    case TOKEN_COMMA:
+        return "COMMA";
     case TOKEN_EOF:
         return "EOF";
     case TOKEN_UNKNOWN:

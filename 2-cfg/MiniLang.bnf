@@ -1,21 +1,44 @@
-# 1. 起始规则
-<program> ::= <statement> | <statement> <program>
+# 1. 起始规则 - 程序由顶层声明组成
+<program> ::= <declaration_list>
+<declaration_list> ::= <declaration> | <declaration> <declaration_list>
 
-# 2. 语句 (Statement)
-# 语句可以是变量声明、赋值语句、条件语句或循环语句。
-<statement> ::= <variable_declaration> | <assignment> | <if_statement> | <while_statement>
-<variable_declaration> ::= <type> <identifier> ('=' <expression>)? ';'
+# 2. 顶层声明 (Declaration) - 只能在程序顶层出现
+# 声明的作用：引入新的标识符，建立符号表，分配存储空间
+<declaration> ::= <global_variable_declaration> | <function_declaration> | <function_definition>
+
+# 3. 全局变量声明 - 只能在顶层声明全局变量
+<global_variable_declaration> ::= <type> <identifier> ('=' <expression>)? ';'
+
+# 4. 语句 (Statement) - 只能在函数体内出现
+# 语句的作用：执行具体操作，产生运行时行为
+<statement_list> ::= <statement> | <statement> <statement_list>
+<statement> ::= <local_variable_declaration> | <assignment> | <if_statement> | <while_statement> | <return_statement> | <expression_statement>
+
+# 局部变量声明 - 只能在函数体内声明
+<local_variable_declaration> ::= <type> <identifier> ('=' <expression>)? ';'
 <assignment> ::= <identifier> '=' <expression> ';'
-<if_statement> ::= 'if' '(' <expression> ')' '{' <program> '}' 
-                | 'if' '(' <expression> ')' '{' <program> '}' 'else' '{' <program> '}' 
-<while_statement> ::= 'while' '(' <expression> ')' '{' <program> '}'
+<expression_statement> ::= <expression> ';'
+<return_statement> ::= 'return' <expression>? ';'
 
+# 控制流语句 - 花括号内是语句列表，不是程序
+<if_statement> ::= 'if' '(' <expression> ')' '{' <statement_list> '}' 
+                | 'if' '(' <expression> ')' '{' <statement_list> '}' 'else' '{' <statement_list> '}' 
+<while_statement> ::= 'while' '(' <expression> ')' '{' <statement_list> '}'
 
+# 5. 函数相关语法
+<function_declaration> ::= <type> <identifier> '(' <parameter_list>? ')' ';'
+<function_definition> ::= <type> <identifier> '(' <parameter_list>? ')' '{' <statement_list> '}'
+<parameter_list> ::= <parameter> | <parameter> ',' <parameter_list>
+<parameter> ::= <type> <identifier>
+<function_call> ::= <identifier> '(' <argument_list>? ')'
+<argument_list> ::= <expression> | <expression> ',' <argument_list>
+
+# 5. 表达式语法
 # <expression> 是一个带值的语句
 # 次高优先级：乘除法 (Term)
 # 接下来，我们定义一个由“因子”通过乘除法组成的结构，称之为 <term> (项)。
 
-<factor> ::= <number> | <identifier> | '(' <expression> ')'
+<factor> ::= <number> | <identifier> | <function_call> | '(' <expression> ')'
 <term> ::= <factor> | <term> '*' <factor> | <term> '/' <factor>
 <expression> ::= <term> 
     | <expression> '+' <term> 

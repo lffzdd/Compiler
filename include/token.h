@@ -21,6 +21,7 @@ typedef enum {
     TOKEN_RIGHT_BRACKET,
 
     TOKEN_SEMICOLON,
+    TOKEN_COMMA,
     TOKEN_EOF,
     TOKEN_UNKNOWN
 } TokenType;
