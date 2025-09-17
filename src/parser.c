@@ -1,4 +1,5 @@
 #include "../include/parser.h"
+#include "../include/ast.h"
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -329,7 +330,7 @@ void parseFactor() {
 }
 
 // 主解析函数，类似于lexer中的lexer函数
-int parse(const char* source) {
+void parse(const char* source) {
     // 设置全局源码指针
     src = source;
     pos = 0;
@@ -343,12 +344,10 @@ int parse(const char* source) {
     parseProgram();
 
     printf("Parse completed successfully!\n");
-
-    return 0;
 }
 
 // 带调试模式的解析函数
-int parse_debug(const char* source) {
+void parse_debug(const char* source) {
     // 启用调试模式
     debug_mode = 1;
     indent_level = 0;
@@ -368,7 +367,6 @@ int parse_debug(const char* source) {
     printf("Parse completed successfully!\n");
 
     debug_mode = 0; // 关闭调试模式
-    return 0;
 }
 
 // 函数声明解析：type identifier(parameter_list);
@@ -528,4 +526,494 @@ void parseArgumentList() {
     }
 
     indent_level--;
+}
+
+// ===================== AST构建解析函数 =====================
+
+// 辅助函数：Token转换为二元操作符
+BinaryOperatorType tokenToBinaryOperator(Token token) {
+    if (token.type == TOKEN_OPERATOR) {
+        if (strcmp(token.value, "+") == 0) return BINARY_ADD;
+        if (strcmp(token.value, "-") == 0) return BINARY_SUB;
+        if (strcmp(token.value, "*") == 0) return BINARY_MUL;
+        if (strcmp(token.value, "/") == 0) return BINARY_DIV;
+        if (strcmp(token.value, ">") == 0) return BINARY_GT;
+        if (strcmp(token.value, "<") == 0) return BINARY_LT;
+        if (strcmp(token.value, "=") == 0) return BINARY_ASSIGN;
+    }
+    // 默认返回加法（错误处理）
+    return BINARY_ADD;
+}
+
+// 解析程序并构建AST
+ASTNode* parseProgram_AST() {
+    ASTNode* program = createProgramNode();
+
+    while (currentToken.type != TOKEN_EOF) {
+        ASTNode* declaration = parseDeclaration_AST();
+        if (declaration) {
+            addDeclarationToProgram(program, declaration);
+        }
+    }
+
+    return program;
+}
+
+// 解析声明并构建AST
+ASTNode* parseDeclaration_AST() {
+    if (currentToken.type != TOKEN_KEYWORD) {
+        return NULL;
+    }
+
+    // 保存类型信息
+    char* type = strdup(currentToken.value);
+    nextToken();
+
+    if (currentToken.type != TOKEN_IDENTIFIER) {
+        free(type);
+        return NULL;
+    }
+
+    char* name = strdup(currentToken.value);
+    nextToken();
+
+    // 判断是函数还是变量
+    if (currentToken.type == TOKEN_LEFT_PAREN) {
+        // 函数声明或定义
+        nextToken(); // 跳过 '('
+
+        ASTNode* parameters = parseParameterList_AST();
+
+        if (currentToken.type == TOKEN_RIGHT_PAREN) {
+            nextToken(); // 跳过 ')'
+        }
+
+        if (currentToken.type == TOKEN_SEMICOLON) {
+            // 函数声明
+            nextToken(); // 跳过 ';'
+            ASTNode* func_decl = createFunctionDeclarationNode(type, name, parameters);
+            free(type);
+            free(name);
+            return func_decl;
+        }
+        else if (currentToken.type == TOKEN_LEFT_BRACE) {
+            // 函数定义
+            nextToken(); // 跳过 '{'
+            ASTNode* body = parseBlock_AST();
+            if (currentToken.type == TOKEN_RIGHT_BRACE) {
+                nextToken(); // 跳过 '}'
+            }
+            ASTNode* func_def = createFunctionDefinitionNode(type, name, parameters, body);
+            free(type);
+            free(name);
+            return func_def;
+        }
+    }
+    else {
+        // 变量声明
+        ASTNode* initializer = NULL;
+
+        if (currentToken.type == TOKEN_OPERATOR && strcmp(currentToken.value, "=") == 0) {
+            nextToken(); // 跳过 '='
+            initializer = parseExpression_AST();
+        }
+
+        if (currentToken.type == TOKEN_SEMICOLON) {
+            nextToken(); // 跳过 ';'
+        }
+
+        ASTNode* var_decl = createVariableDeclarationNode(type, name, initializer);
+        free(type);
+        free(name);
+        return var_decl;
+    }
+
+    free(type);
+    free(name);
+    return NULL;
+}
+
+// 解析语句块并构建AST
+ASTNode* parseBlock_AST() {
+    ASTNode* block = createBlockStatementNode();
+
+    while (currentToken.type != TOKEN_EOF &&
+        !(currentToken.type == TOKEN_RIGHT_BRACE && strcmp(currentToken.value, "}") == 0)) {
+        ASTNode* statement = parseStatement_AST();
+        if (statement) {
+            addStatementToBlock(block, statement);
+        }
+    }
+
+    return block;
+}
+
+// 解析语句并构建AST
+ASTNode* parseStatement_AST() {
+    if (currentToken.type == TOKEN_KEYWORD) {
+        // 根据关键字类型选择解析函数
+        if (strcmp(currentToken.value, "int") == 0 ||
+            strcmp(currentToken.value, "float") == 0 ||
+            strcmp(currentToken.value, "char") == 0 ||
+            strcmp(currentToken.value, "void") == 0) {
+            return parseVariableDeclaration_AST();
+        }
+        else if (strcmp(currentToken.value, "if") == 0) {
+            return parseIfStatement_AST();
+        }
+        else if (strcmp(currentToken.value, "while") == 0) {
+            return parseWhileStatement_AST();
+        }
+        else if (strcmp(currentToken.value, "return") == 0) {
+            return parseReturnStatement_AST();
+        }
+    }
+    else if (currentToken.type == TOKEN_IDENTIFIER) {
+        // 判断是赋值语句还是表达式语句
+        Token saved_token = currentToken;
+        nextToken();
+
+        if (currentToken.type == TOKEN_OPERATOR && strcmp(currentToken.value, "=") == 0) {
+            // 回退并解析赋值语句
+            currentToken = saved_token;
+            pos--; // 简单回退（实际应该更精确）
+            return parseAssignment_AST();
+        }
+        else {
+            // 回退并解析表达式语句
+            currentToken = saved_token;
+            pos--; // 简单回退
+            ASTNode* expr = parseExpression_AST();
+            if (currentToken.type == TOKEN_SEMICOLON) {
+                nextToken(); // 跳过 ';'
+            }
+            return createExpressionStatementNode(expr);
+        }
+    }
+
+    return NULL;
+}
+
+// 解析变量声明并构建AST（局部变量）
+ASTNode* parseVariableDeclaration_AST() {
+    if (currentToken.type != TOKEN_KEYWORD) {
+        return NULL;
+    }
+
+    char* type = strdup(currentToken.value);
+    nextToken();
+
+    if (currentToken.type != TOKEN_IDENTIFIER) {
+        free(type);
+        return NULL;
+    }
+
+    char* name = strdup(currentToken.value);
+    nextToken();
+
+    ASTNode* initializer = NULL;
+    if (currentToken.type == TOKEN_OPERATOR && strcmp(currentToken.value, "=") == 0) {
+        nextToken(); // 跳过 '='
+        initializer = parseExpression_AST();
+    }
+
+    if (currentToken.type == TOKEN_SEMICOLON) {
+        nextToken(); // 跳过 ';'
+    }
+
+    ASTNode* var_decl = createVariableDeclarationNode(type, name, initializer);
+    free(type);
+    free(name);
+    return var_decl;
+}
+
+// 解析赋值语句并构建AST
+ASTNode* parseAssignment_AST() {
+    if (currentToken.type != TOKEN_IDENTIFIER) {
+        return NULL;
+    }
+
+    char* variable = strdup(currentToken.value);
+    nextToken();
+
+    if (currentToken.type == TOKEN_OPERATOR && strcmp(currentToken.value, "=") == 0) {
+        nextToken(); // 跳过 '='
+        ASTNode* value = parseExpression_AST();
+
+        if (currentToken.type == TOKEN_SEMICOLON) {
+            nextToken(); // 跳过 ';'
+        }
+
+        ASTNode* assignment = createAssignmentStatementNode(variable, value);
+        free(variable);
+        return assignment;
+    }
+
+    free(variable);
+    return NULL;
+}
+
+// 主接口函数：解析并构建AST
+ASTNode* parse_and_build_ast(const char* source) {
+    src = source;
+    pos = 0;
+    debug_mode = 0;
+
+    nextToken(); // 读取第一个token
+    return parseProgram_AST();
+}
+
+// 解析表达式并构建AST
+ASTNode* parseExpression_AST() {
+    ASTNode* left = parseTerm_AST();
+
+    while (currentToken.type == TOKEN_OPERATOR &&
+        (strcmp(currentToken.value, "+") == 0 ||
+            strcmp(currentToken.value, "-") == 0 ||
+            strcmp(currentToken.value, ">") == 0 ||
+            strcmp(currentToken.value, "<") == 0)) {
+
+        BinaryOperatorType op = tokenToBinaryOperator(currentToken);
+        nextToken();
+        ASTNode* right = parseTerm_AST();
+        left = createBinaryExpressionNode(op, left, right);
+    }
+
+    return left;
+}
+
+// 解析项并构建AST
+ASTNode* parseTerm_AST() {
+    ASTNode* left = parseFactor_AST();
+
+    while (currentToken.type == TOKEN_OPERATOR &&
+        (strcmp(currentToken.value, "*") == 0 ||
+            strcmp(currentToken.value, "/") == 0)) {
+
+        BinaryOperatorType op = tokenToBinaryOperator(currentToken);
+        nextToken();
+        ASTNode* right = parseFactor_AST();
+        left = createBinaryExpressionNode(op, left, right);
+    }
+
+    return left;
+}
+
+// 解析因子并构建AST
+ASTNode* parseFactor_AST() {
+    if (currentToken.type == TOKEN_INTEGER ||
+        currentToken.type == TOKEN_STRING ||
+        currentToken.type == TOKEN_FLOAT) {
+        // 字面值
+        ASTNode* literal = createLiteralNode(currentToken.type, currentToken.value);
+        nextToken();
+        return literal;
+    }
+    else if (currentToken.type == TOKEN_IDENTIFIER) {
+        // 标识符或函数调用
+        char* name = strdup(currentToken.value);
+        nextToken();
+
+        if (currentToken.type == TOKEN_LEFT_PAREN) {
+            // 函数调用
+            nextToken(); // 跳过 '('
+            ASTNode* arguments = parseArgumentList_AST();
+            if (currentToken.type == TOKEN_RIGHT_PAREN) {
+                nextToken(); // 跳过 ')'
+            }
+            ASTNode* func_call = createFunctionCallNode(name, arguments);
+            free(name);
+            return func_call;
+        }
+        else {
+            // 普通标识符
+            ASTNode* identifier = createIdentifierNode(name);
+            free(name);
+            return identifier;
+        }
+    }
+    else if (currentToken.type == TOKEN_LEFT_PAREN) {
+        // 括号表达式
+        nextToken(); // 跳过 '('
+        ASTNode* expr = parseExpression_AST();
+        if (currentToken.type == TOKEN_RIGHT_PAREN) {
+            nextToken(); // 跳过 ')'
+        }
+        return expr;
+    }
+
+    return NULL;
+}
+
+// 解析参数列表并构建AST
+ASTNode* parseParameterList_AST() {
+    ASTNode* param_list = createListNode();
+    param_list->type = AST_PARAMETER_LIST;
+
+    if (currentToken.type == TOKEN_RIGHT_PAREN) {
+        // 空参数列表
+        return param_list;
+    }
+
+    // 解析第一个参数
+    if (currentToken.type == TOKEN_KEYWORD) {
+        char* type = strdup(currentToken.value);
+        nextToken();
+
+        if (currentToken.type == TOKEN_IDENTIFIER) {
+            char* name = strdup(currentToken.value);
+            nextToken();
+
+            ASTNode* param = createVariableDeclarationNode(type, name, NULL);
+            addItemToList(param_list, param);
+
+            free(type);
+            free(name);
+        }
+    }
+
+    // 解析后续参数
+    while (currentToken.type == TOKEN_COMMA) {
+        nextToken(); // 跳过逗号
+
+        if (currentToken.type == TOKEN_KEYWORD) {
+            char* type = strdup(currentToken.value);
+            nextToken();
+
+            if (currentToken.type == TOKEN_IDENTIFIER) {
+                char* name = strdup(currentToken.value);
+                nextToken();
+
+                ASTNode* param = createVariableDeclarationNode(type, name, NULL);
+                addItemToList(param_list, param);
+
+                free(type);
+                free(name);
+            }
+        }
+    }
+
+    return param_list;
+}
+
+// 解析参数列表并构建AST
+ASTNode* parseArgumentList_AST() {
+    ASTNode* arg_list = createListNode();
+    arg_list->type = AST_ARGUMENT_LIST;
+
+    if (currentToken.type == TOKEN_RIGHT_PAREN) {
+        // 空参数列表
+        return arg_list;
+    }
+
+    // 解析第一个参数
+    ASTNode* arg = parseExpression_AST();
+    if (arg) {
+        addItemToList(arg_list, arg);
+    }
+
+    // 解析后续参数
+    while (currentToken.type == TOKEN_COMMA) {
+        nextToken(); // 跳过逗号
+        ASTNode* arg = parseExpression_AST();
+        if (arg) {
+            addItemToList(arg_list, arg);
+        }
+    }
+
+    return arg_list;
+}
+
+// 解析if语句并构建AST
+ASTNode* parseIfStatement_AST() {
+    if (currentToken.type != TOKEN_KEYWORD || strcmp(currentToken.value, "if") != 0) {
+        return NULL;
+    }
+
+    nextToken(); // 跳过 'if'
+
+    if (currentToken.type == TOKEN_LEFT_PAREN) {
+        nextToken(); // 跳过 '('
+    }
+
+    ASTNode* condition = parseExpression_AST();
+
+    if (currentToken.type == TOKEN_RIGHT_PAREN) {
+        nextToken(); // 跳过 ')'
+    }
+
+    if (currentToken.type == TOKEN_LEFT_BRACE) {
+        nextToken(); // 跳过 '{'
+    }
+
+    ASTNode* then_stmt = parseBlock_AST();
+
+    if (currentToken.type == TOKEN_RIGHT_BRACE) {
+        nextToken(); // 跳过 '}'
+    }
+
+    ASTNode* else_stmt = NULL;
+    if (currentToken.type == TOKEN_KEYWORD && strcmp(currentToken.value, "else") == 0) {
+        nextToken(); // 跳过 'else'
+        if (currentToken.type == TOKEN_LEFT_BRACE) {
+            nextToken(); // 跳过 '{'
+        }
+        else_stmt = parseBlock_AST();
+        if (currentToken.type == TOKEN_RIGHT_BRACE) {
+            nextToken(); // 跳过 '}'
+        }
+    }
+
+    return createIfStatementNode(condition, then_stmt, else_stmt);
+}
+
+// 解析while语句并构建AST
+ASTNode* parseWhileStatement_AST() {
+    if (currentToken.type != TOKEN_KEYWORD || strcmp(currentToken.value, "while") != 0) {
+        return NULL;
+    }
+
+    nextToken(); // 跳过 'while'
+
+    if (currentToken.type == TOKEN_LEFT_PAREN) {
+        nextToken(); // 跳过 '('
+    }
+
+    ASTNode* condition = parseExpression_AST();
+
+    if (currentToken.type == TOKEN_RIGHT_PAREN) {
+        nextToken(); // 跳过 ')'
+    }
+
+    if (currentToken.type == TOKEN_LEFT_BRACE) {
+        nextToken(); // 跳过 '{'
+    }
+
+    ASTNode* body = parseBlock_AST();
+
+    if (currentToken.type == TOKEN_RIGHT_BRACE) {
+        nextToken(); // 跳过 '}'
+    }
+
+    return createWhileStatementNode(condition, body);
+}
+
+// 解析return语句并构建AST
+ASTNode* parseReturnStatement_AST() {
+    if (currentToken.type != TOKEN_KEYWORD || strcmp(currentToken.value, "return") != 0) {
+        return NULL;
+    }
+
+    nextToken(); // 跳过 'return'
+
+    ASTNode* value = NULL;
+    if (currentToken.type != TOKEN_SEMICOLON) {
+        value = parseExpression_AST();
+    }
+
+    if (currentToken.type == TOKEN_SEMICOLON) {
+        nextToken(); // 跳过 ';'
+    }
+
+    return createReturnStatementNode(value);
 }
