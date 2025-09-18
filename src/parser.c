@@ -182,7 +182,9 @@ void parseStatement() {
     }
 
     indent_level--;
-}// variable_declaration ::= type identifier ('=' expression)? ';'
+}
+
+// variable_declaration ::= type identifier ('=' expression)? ';'
 void parseVariableDeclaration() {
     nextToken(); // 跳过类型
     expect(TOKEN_IDENTIFIER, NULL);
