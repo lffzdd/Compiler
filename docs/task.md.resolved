@@ -1,0 +1,75 @@
+# 📋 编译器学习任务跟踪
+
+## 总体进度
+
+| 阶段 | 状态 | 说明 |
+|:----:|:----:|:-----|
+| 1 | ✅ 完成 | 词法分析 |
+| 2 | ⏳ 待开始 | 语法分析 |
+| 3 | ⏳ 待开始 | 语义分析 |
+| 4 | ⏳ 待开始 | 中间代码生成 |
+| 5 | ⏳ 待开始 | 代码优化 |
+| 6 | ⏳ 待开始 | 目标代码生成 |
+| 7 | ⏳ 待开始 | 链接与执行 |
+
+---
+
+## 阶段1：词法分析 ✅
+
+### 已完成
+- [x] Token 类型定义 ([include/token.h](file:///d:/Projects/C/Compiler/include/token.h))
+- [x] Token 辅助函数 ([src/token.c](file:///d:/Projects/C/Compiler/src/token.c))
+- [x] Lexer 结构体定义 ([include/lexer.h](file:///d:/Projects/C/Compiler/include/lexer.h))
+- [x] Lexer 核心实现 ([src/lexer.c](file:///d:/Projects/C/Compiler/src/lexer.c))
+  - [x] 跳过空白字符
+  - [x] 跳过单行注释 (`//`)
+  - [x] 跳过块注释 (`/* */`)
+  - [x] 识别关键字和标识符
+  - [x] 识别整数和浮点数
+  - [x] 识别字符串和字符字面量
+  - [x] 识别运算符（单字符和双字符）
+  - [x] 识别各种分隔符
+- [x] 测试程序 (`main.c`)
+- [x] 编译运行测试通过
+
+### 学习要点
+1. Token 是源代码的最小有意义单位
+2. 通过首字符判断 Token 类型
+3. 关键字和标识符的区分靠"查表"
+4. 要先检查双字符运算符，再检查单字符
+
+---
+
+## 阶段2：语法分析 ⏳
+
+### 学习目标
+- [ ] 理解上下文无关文法 (CFG)
+- [ ] 掌握递归下降解析
+- [ ] 理解抽象语法树 (AST)
+- [ ] 处理运算符优先级
+
+### 待实现
+- [ ] AST 节点定义 (`include/ast.h`)
+- [ ] AST 辅助函数 (`src/ast.c`)
+- [ ] Parser 结构体定义 (`include/parser.h`)
+- [ ] Parser 核心实现 (`src/parser.c`)
+- [ ] 测试语法分析功能
+
+---
+
+## 文件结构
+
+```
+Compiler/
+├── include/           # 头文件
+│   ├── token.h       # ✅ Token 类型定义
+│   └── lexer.h       # ✅ 词法分析器头文件
+├── src/              # 源文件
+│   ├── token.c       # ✅ Token 辅助函数
+│   └── lexer.c       # ✅ 词法分析器实现
+├── test_file/        # 测试文件
+│   └── sample.c      # ✅ 测试用源代码
+├── main.c            # ✅ 主程序
+├── Makefile          # ✅ 构建脚本
+└── README.md         # 项目说明
+```

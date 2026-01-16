@@ -1,84 +1,68 @@
-# Compiler settings
+# Makefile - 编译器项目构建脚本
+#
+# 使用方法:
+#   make          - 构建编译器
+#   make run      - 运行演示
+#   make clean    - 清理构建文件
+#   make test     - 测试词法分析器
+
+# 编译器设置
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c99 -Iinclude
-SRCDIR = src
-INCDIR = include
-OBJDIR = obj
-BINDIR = bin
+CFLAGS = -Wall -Wextra -std=c99 -g
 
-# Create directories
-$(shell mkdir -p $(OBJDIR) $(BINDIR))
+# 目录
+SRC_DIR = src
+INC_DIR = include
+BIN_DIR = bin
+OBJ_DIR = obj
 
-# Source files
-LEXER_SRCS = $(SRCDIR)/token.c $(SRCDIR)/keyword.c $(SRCDIR)/lexer.c
-PARSER_SRCS = $(LEXER_SRCS) $(SRCDIR)/parser.c $(SRCDIR)/ast.c
-SEMANTIC_SRCS = $(PARSER_SRCS) $(SRCDIR)/semantic.c
+# 源文件
+SRCS = main.c \
+       $(SRC_DIR)/token.c \
+       $(SRC_DIR)/lexer.c
 
-# Object files
-LEXER_OBJS = $(LEXER_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-PARSER_OBJS = $(PARSER_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
-SEMANTIC_OBJS = $(SEMANTIC_SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
+# 目标文件
+OBJS = $(OBJ_DIR)/main.o \
+       $(OBJ_DIR)/token.o \
+       $(OBJ_DIR)/lexer.o
 
-# Targets
-all: $(BINDIR)/lexer $(BINDIR)/parser $(BINDIR)/semantic
+# 输出文件
+TARGET = $(BIN_DIR)/compiler
 
-# Lexer executable
-$(BINDIR)/lexer: $(LEXER_OBJS) $(OBJDIR)/lexer_main.o
+# 默认目标
+all: dirs $(TARGET)
+
+# 创建目录
+dirs:
+	@if not exist $(BIN_DIR) mkdir $(BIN_DIR)
+	@if not exist $(OBJ_DIR) mkdir $(OBJ_DIR)
+
+# 链接
+$(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^
 
-# Parser executable
-$(BINDIR)/parser: $(PARSER_OBJS) $(OBJDIR)/parser_main.o
-	$(CC) $(CFLAGS) -o $@ $^
+# 编译规则
+$(OBJ_DIR)/main.o: main.c $(INC_DIR)/lexer.h $(INC_DIR)/token.h
+	$(CC) $(CFLAGS) -c -o $@ main.c
 
-# Semantic analyzer executable
-$(BINDIR)/semantic: $(SEMANTIC_OBJS) $(OBJDIR)/semantic_main.o
-	$(CC) $(CFLAGS) -o $@ $^
+$(OBJ_DIR)/token.o: $(SRC_DIR)/token.c $(INC_DIR)/token.h
+	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/token.c
 
-# Semantic test executable
-$(BINDIR)/semantic_test: $(SEMANTIC_OBJS) $(OBJDIR)/semantic_test.o
-	$(CC) $(CFLAGS) -o $@ $^
+$(OBJ_DIR)/lexer.o: $(SRC_DIR)/lexer.c $(INC_DIR)/lexer.h $(INC_DIR)/token.h
+	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/lexer.c
 
-# Object files
-$(OBJDIR)/%.o: $(SRCDIR)/%.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+# 运行
+run: all
+	$(TARGET)
 
-$(OBJDIR)/lexer_main.o: lexer_main.c
-	$(CC) $(CFLAGS) -c -o $@ $<
+# 测试
+test: all
+	@echo Testing lexer with sample file...
+	$(TARGET) test_file/sample.c
 
-$(OBJDIR)/parser_main.o: parser_main.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/semantic_main.o: semantic_main.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/semantic_test.o: semantic_test.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-$(OBJDIR)/ast_main.o: ast_main.c
-	$(CC) $(CFLAGS) -c -o $@ $<
-
-# Clean
+# 清理
 clean:
-	rm -rf $(OBJDIR) $(BINDIR)
+	@if exist $(BIN_DIR) rmdir /s /q $(BIN_DIR)
+	@if exist $(OBJ_DIR) rmdir /s /q $(OBJ_DIR)
 
-# Test targets
-test-lexer: $(BINDIR)/lexer
-	@echo "Testing lexer with template.c:"
-	./$(BINDIR)/lexer test_file/template.c
-
-test-parser: $(BINDIR)/parser
-	@echo "Testing parser with template.c:"
-	./$(BINDIR)/parser test_file/template.c
-
-test-semantic: $(BINDIR)/semantic
-	@echo "Testing semantic analyzer:"
-	./$(BINDIR)/semantic
-
-test-semantic-suite: $(BINDIR)/semantic_test
-	@echo "Running semantic analyzer test suite:"
-	./$(BINDIR)/semantic_test
-
-# Build and test all components
-test-all: test-lexer test-parser test-semantic
-
-.PHONY: all clean test-lexer test-parser test-semantic test-semantic-suite test-all
+.PHONY: all dirs run test clean

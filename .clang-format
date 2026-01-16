@@ -1,9 +1,0 @@
-# Simple clang-format configuration focused on line length
-BasedOnStyle: LLVM
-
-# Main setting: Maximum line length
-ColumnLimit: 120
-
-# tab为4个空格
-TabWidth: 4
-IndentWidth: 4
