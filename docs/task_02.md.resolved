@@ -1,0 +1,110 @@
+# 📋 编译器学习任务跟踪
+
+## 总体进度
+
+| 阶段 | 状态 | 说明 |
+|:----:|:----:|:-----|
+| 1 | ✅ 完成 | 词法分析 |
+| 2 | ✅ 完成 | 语法分析 |
+| 3 | ⏳ 待开始 | 语义分析 |
+| 4 | ⏳ 待开始 | 中间代码生成 |
+| 5 | ⏳ 待开始 | 代码优化 |
+| 6 | ⏳ 待开始 | 目标代码生成 |
+| 7 | ⏳ 待开始 | 链接与执行 |
+
+---
+
+## 阶段1：词法分析 ✅
+
+### 已完成
+- [x] Token 类型定义 ([include/token.h](file:///d:/Projects/C/Compiler/include/token.h))
+- [x] Token 辅助函数 ([src/token.c](file:///d:/Projects/C/Compiler/src/token.c))
+- [x] Lexer 结构体定义 ([include/lexer.h](file:///d:/Projects/C/Compiler/include/lexer.h))
+- [x] Lexer 核心实现 ([src/lexer.c](file:///d:/Projects/C/Compiler/src/lexer.c))
+- [x] 测试通过
+
+### 学习要点
+1. Token 是源代码的最小有意义单位
+2. 通过首字符判断 Token 类型
+3. 关键字和标识符的区分靠"查表"
+
+---
+
+## 阶段2：语法分析 ✅
+
+### 已完成
+- [x] AST 节点类型定义 ([include/ast.h](file:///d:/Projects/C/Compiler/include/ast.h))
+  - [x] 使用枚举定义节点类型
+  - [x] 使用联合体实现多态节点
+  - [x] 定义所有需要的节点数据结构
+- [x] AST 操作函数 ([src/ast.c](file:///d:/Projects/C/Compiler/src/ast.c))
+  - [x] 节点创建函数
+  - [x] AST 打印函数（调试用）
+  - [x] 内存释放函数
+- [x] Parser 结构体定义 ([include/parser.h](file:///d:/Projects/C/Compiler/include/parser.h))
+- [x] 递归下降解析器 ([src/parser.c](file:///d:/Projects/C/Compiler/src/parser.c))
+  - [x] 表达式解析（支持优先级）
+  - [x] 语句解析（if/while/return）
+  - [x] 变量声明解析
+  - [x] 函数定义解析
+  - [x] 错误处理和恢复
+- [x] 测试通过
+
+### 学习要点
+1. **上下文无关文法 (CFG)** 描述语言结构
+2. **递归下降解析**：每个语法规则对应一个函数
+3. **运算符优先级**通过分层文法实现
+4. **AST** 是源代码的树形表示
+
+### 表达式优先级（从低到高）
+```
+assignment  → 赋值 (=)
+logic_or    → 逻辑或 (||)
+logic_and   → 逻辑与 (&&)
+equality    → 相等性 (==, !=)
+comparison  → 比较 (<, >, <=, >=)
+term        → 加减 (+, -)
+factor      → 乘除模 (*, /, %)
+unary       → 一元 (-, !)
+call        → 函数调用 ()
+primary     → 基本元素 (数字, 标识符, 括号)
+```
+
+---
+
+## 阶段3：语义分析 ⏳
+
+### 学习目标
+- [ ] 理解符号表的作用
+- [ ] 掌握作用域管理
+- [ ] 实现类型检查
+
+### 待实现
+- [ ] 符号表数据结构
+- [ ] 作用域管理
+- [ ] 类型检查器
+- [ ] 语义错误报告
+
+---
+
+## 文件结构
+
+```
+Compiler/
+├── include/           # 头文件
+│   ├── token.h       # ✅ Token 类型定义
+│   ├── lexer.h       # ✅ 词法分析器头文件
+│   ├── ast.h         # ✅ AST 节点定义
+│   └── parser.h      # ✅ 语法分析器头文件
+├── src/              # 源文件
+│   ├── token.c       # ✅ Token 辅助函数
+│   ├── lexer.c       # ✅ 词法分析器实现
+│   ├── ast.c         # ✅ AST 操作函数
+│   └── parser.c      # ✅ 语法分析器实现
+├── test_file/        # 测试文件
+│   ├── sample.c      # ✅ 测试用源代码
+│   └── test_simple.c # ✅ 简单测试用例
+├── main.c            # ✅ 主程序
+├── Makefile          # ✅ 构建脚本
+└── README.md         # 项目说明
+```
