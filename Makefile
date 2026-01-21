@@ -9,6 +9,7 @@
 # 编译器设置
 CC = gcc
 CFLAGS = -Wall -Wextra -std=c99 -g
+SHELL = cmd.exe
 
 # 目录
 SRC_DIR = src
@@ -19,12 +20,18 @@ OBJ_DIR = obj
 # 源文件
 SRCS = main.c \
        $(SRC_DIR)/token.c \
-       $(SRC_DIR)/lexer.c
+       $(SRC_DIR)/lexer.c \
+	   $(SRC_DIR)/parser.c \
+	   $(SRC_DIR)/ast.c \
+	   $(SRC_DIR)/semantic.c
 
 # 目标文件
 OBJS = $(OBJ_DIR)/main.o \
        $(OBJ_DIR)/token.o \
-       $(OBJ_DIR)/lexer.o
+       $(OBJ_DIR)/lexer.o \
+	   $(OBJ_DIR)/parser.o \
+	   $(OBJ_DIR)/ast.o \
+	   $(OBJ_DIR)/semantic.o
 
 # 输出文件
 TARGET = $(BIN_DIR)/compiler
@@ -50,6 +57,15 @@ $(OBJ_DIR)/token.o: $(SRC_DIR)/token.c $(INC_DIR)/token.h
 
 $(OBJ_DIR)/lexer.o: $(SRC_DIR)/lexer.c $(INC_DIR)/lexer.h $(INC_DIR)/token.h
 	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/lexer.c
+
+$(OBJ_DIR)/parser.o: $(SRC_DIR)/parser.c $(INC_DIR)/parser.h $(INC_DIR)/ast.h $(INC_DIR)/token.h
+	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/parser.c
+
+$(OBJ_DIR)/ast.o: $(SRC_DIR)/ast.c $(INC_DIR)/ast.h
+	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/ast.c
+
+$(OBJ_DIR)/semantic.o: $(SRC_DIR)/semantic.c $(INC_DIR)/semantic.h $(INC_DIR)/ast.h
+	$(CC) $(CFLAGS) -c -o $@ $(SRC_DIR)/semantic.c
 
 # 运行
 run: all
