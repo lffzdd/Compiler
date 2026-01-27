@@ -1,0 +1,226 @@
+# 📖 第四课：中间代码生成 (Intermediate Code Generation)
+
+## 🎯 学习目标
+
+通过本课学习，你将：
+1. 理解为什么需要中间代码
+2. 掌握**三地址码 (Three-Address Code)** 的格式
+3. 学会将 AST 转换为 IR
+4. 理解控制流语句的翻译
+
+---
+
+## 🤔 为什么需要中间代码？
+
+### 直接从 AST 生成机器码的问题
+
+```
+AST ──────────────────────────> x86 机器码
+     太复杂了！一步跨太大！
+```
+
+问题：
+- AST 是树形结构，机器码是线性的
+- AST 节点类型多样，机器指令格式固定
+- 难以优化
+
+### 中间代码作为桥梁
+
+```
+AST ──> IR (中间代码) ──> 优化 ──> 机器码
+        简单线性格式     更好做     目标代码
+```
+
+好处：
+1. **分解复杂性**：一步变两步，每步更简单
+2. **便于优化**：中间代码结构规整，易于分析
+3. **跨平台**：相同的 IR 可生成不同平台的代码
+
+---
+
+## 📐 三地址码 (Three-Address Code)
+
+### 什么是三地址码？
+
+每条指令最多涉及**三个地址**（操作数）：
+
+```
+result = operand1 op operand2
+```
+
+### 指令格式
+
+| 类型 | 格式 | 示例 |
+|:-----|:-----|:-----|
+| 赋值 | `x = y` | `t1 = a` |
+| 二元运算 | `x = y op z` | `t2 = t1 + b` |
+| 一元运算 | `x = op y` | `t3 = -t2` |
+| 复制 | `x = y` | `result = t3` |
+| 跳转 | `goto L` | `goto L1` |
+| 条件跳转 | `if x goto L` | `if t1 goto L2` |
+| 条件跳转 | `iffalse x goto L` | `iffalse t1 goto L3` |
+| 函数调用 | `call f, n` | `call add, 2` |
+| 返回 | `return x` | `return t1` |
+| 参数 | `param x` | `param a` |
+
+### 例子：表达式翻译
+
+源代码：
+```c
+int x = a + b * c;
+```
+
+三地址码：
+```
+t1 = b * c      // 先算乘法
+t2 = a + t1     // 再算加法
+x = t2          // 赋值
+```
+
+注意：每行只做一件事！
+
+---
+
+## 🔀 控制流翻译
+
+### if 语句
+
+源代码：
+```c
+if (a > b) {
+    x = 1;
+} else {
+    x = 2;
+}
+```
+
+三地址码：
+```
+    t1 = a > b
+    iffalse t1 goto L1    // 条件为假跳到 else
+    x = 1
+    goto L2               // 跳过 else
+L1:
+    x = 2
+L2:
+    // 继续...
+```
+
+### while 语句
+
+源代码：
+```c
+while (x > 0) {
+    x = x - 1;
+}
+```
+
+三地址码：
+```
+L1:
+    t1 = x > 0
+    iffalse t1 goto L2    // 条件为假退出循环
+    t2 = x - 1
+    x = t2
+    goto L1               // 跳回循环开始
+L2:
+    // 循环结束
+```
+
+---
+
+## 🏗️ IR 数据结构
+
+### 操作码枚举
+
+```c
+typedef enum {
+    IR_ASSIGN,      // x = y
+    IR_ADD,         // x = y + z
+    IR_SUB,         // x = y - z
+    IR_MUL,         // x = y * z
+    IR_DIV,         // x = y / z
+    IR_NEG,         // x = -y
+    IR_EQ,          // x = (y == z)
+    IR_NE,          // x = (y != z)
+    IR_LT,          // x = (y < z)
+    IR_GT,          // x = (y > z)
+    IR_LE,          // x = (y <= z)
+    IR_GE,          // x = (y >= z)
+    IR_GOTO,        // goto label
+    IR_IF,          // if x goto label
+    IR_IFFALSE,     // iffalse x goto label
+    IR_LABEL,       // label:
+    IR_CALL,        // call func, n
+    IR_PARAM,       // param x
+    IR_RETURN,      // return x
+} IROpcode;
+```
+
+### 指令结构
+
+```c
+typedef struct {
+    IROpcode op;        // 操作码
+    char* result;       // 结果（左值）
+    char* arg1;         // 第一个操作数
+    char* arg2;         // 第二个操作数（可选）
+    int label;          // 标签编号（跳转用）
+} IRInstruction;
+```
+
+---
+
+## 💻 翻译算法
+
+### 表达式翻译
+
+```c
+// 递归翻译表达式，返回保存结果的临时变量名
+char* translate_expr(ASTNode* node) {
+    if (node 是整数字面量) {
+        char* temp = new_temp();
+        emit(ASSIGN, temp, node->value, NULL);
+        return temp;
+    }
+    
+    if (node 是二元表达式) {
+        char* left = translate_expr(node->left);
+        char* right = translate_expr(node->right);
+        char* temp = new_temp();
+        emit(node->op, temp, left, right);
+        return temp;
+    }
+    // ...
+}
+```
+
+### 语句翻译
+
+```c
+void translate_stmt(ASTNode* node) {
+    if (node 是 if 语句) {
+        char* cond = translate_expr(node->condition);
+        int else_label = new_label();
+        int end_label = new_label();
+        
+        emit(IFFALSE, cond, else_label);
+        translate_stmt(node->then_branch);
+        emit(GOTO, end_label);
+        emit(LABEL, else_label);
+        translate_stmt(node->else_branch);
+        emit(LABEL, end_label);
+    }
+    // ...
+}
+```
+
+---
+
+## ✨ 练习思考
+
+1. `a + b + c` 应该生成几条三地址码？
+
+2. `for (int i = 0; i < 10; i++)` 怎么翻译成三地址码？
+
+3. 为什么需要临时变量 (`t1`, `t2`, ...)?
